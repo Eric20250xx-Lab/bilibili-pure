@@ -126,10 +126,8 @@ abstract final class Pref {
     }
     return SegmentType.values
         .map(
-          (item) => Pair(
-            first: item,
-            second: SkipType.values[list[item.index]],
-          ),
+          (item) =>
+              Pair(first: item, second: SkipType.values[list[item.index]]),
         )
         .toList();
   }
@@ -139,13 +137,11 @@ abstract final class Pref {
     if (list == null || list.length != SegmentType.values.length) {
       return SegmentType.values.map((i) => i.color).toList();
     }
-    return SegmentType.values.map(
-      (item) {
-        final String e = list[item.index];
-        final color = e.isNotEmpty ? int.tryParse('FF$e', radix: 16) : null;
-        return color != null ? Color(color) : item.color;
-      },
-    ).toList();
+    return SegmentType.values.map((item) {
+      final String e = list[item.index];
+      final color = e.isNotEmpty ? int.tryParse('FF$e', radix: 16) : null;
+      return color != null ? Color(color) : item.color;
+    }).toList();
   }
 
   static bool get feedBackEnable =>
@@ -323,9 +319,8 @@ abstract final class Pref {
   static String get blockUserID {
     String? blockUserID = _setting.get(SettingBoxKey.blockUserID);
     if (blockUserID == null || blockUserID.isEmpty) {
-      blockUserID = Digest(
-        List.generate(16, (_) => Utils.random.nextInt(256)),
-      ).toString();
+      blockUserID = Digest(List.generate(16, (_) => Utils.random.nextInt(256)))
+          .toString();
       _setting.put(SettingBoxKey.blockUserID, blockUserID);
     }
     return blockUserID;
@@ -377,14 +372,11 @@ abstract final class Pref {
   static bool get showViewPoints =>
       _setting.get(SettingBoxKey.showViewPoints, defaultValue: true);
 
-  static bool get showRelatedVideo =>
-      _setting.get(SettingBoxKey.showRelatedVideo, defaultValue: true);
+  static bool get showRelatedVideo => false;
 
-  static bool get showVideoReply =>
-      _setting.get(SettingBoxKey.showVideoReply, defaultValue: true);
+  static bool get showVideoReply => false;
 
-  static bool get showBangumiReply =>
-      _setting.get(SettingBoxKey.showBangumiReply, defaultValue: true);
+  static bool get showBangumiReply => false;
 
   static bool get alwaysExpandIntroPanel =>
       _setting.get(SettingBoxKey.alwaysExpandIntroPanel, defaultValue: false);
@@ -446,8 +438,7 @@ abstract final class Pref {
   static bool get cdnSpeedTest =>
       _setting.get(SettingBoxKey.cdnSpeedTest, defaultValue: true);
 
-  static bool get autoUpdate =>
-      _setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
+  static bool get autoUpdate => false;
 
   static bool get horizontalPreview =>
       _setting.get(SettingBoxKey.horizontalPreview, defaultValue: false);
@@ -636,8 +627,7 @@ abstract final class Pref {
   static String get banWordForDyn =>
       _setting.get(SettingBoxKey.banWordForDyn, defaultValue: '');
 
-  static bool get enableLog =>
-      _setting.get(SettingBoxKey.enableLog, defaultValue: true);
+  static bool get enableLog => false;
 
   static bool get disableAudioCDN =>
       _setting.get(SettingBoxKey.disableAudioCDN, defaultValue: false);
@@ -776,11 +766,9 @@ abstract final class Pref {
   static bool get fullScreenGestureReverse =>
       _setting.get(SettingBoxKey.fullScreenGestureReverse, defaultValue: false);
 
-  static bool get autoPiP =>
-      _setting.get(SettingBoxKey.autoPiP, defaultValue: false);
+  static bool get autoPiP => false;
 
-  static bool get enableSponsorBlock =>
-      _setting.get(SettingBoxKey.enableSponsorBlock, defaultValue: false);
+  static bool get enableSponsorBlock => false;
 
   static bool get enableHA =>
       _setting.get(SettingBoxKey.enableHA, defaultValue: true);
@@ -853,8 +841,7 @@ abstract final class Pref {
     defaultValue: AudioOutput.defaultValue,
   );
 
-  static bool get enableAi =>
-      _setting.get(SettingBoxKey.enableAi, defaultValue: false);
+  static bool get enableAi => false;
 
   static bool get enableOnlineTotal =>
       _setting.get(SettingBoxKey.enableOnlineTotal, defaultValue: false);
@@ -895,8 +882,7 @@ abstract final class Pref {
   static int get cacheVideoFit =>
       _video.get(VideoBoxKey.cacheVideoFit, defaultValue: 1);
 
-  static bool get continuePlayInBackground =>
-      _setting.get(SettingBoxKey.continuePlayInBackground, defaultValue: false);
+  static bool get continuePlayInBackground => false;
 
   static bool get directExitOnBack =>
       _setting.get(SettingBoxKey.directExitOnBack, defaultValue: false);
@@ -976,9 +962,7 @@ abstract final class Pref {
   static double get desktopVolume =>
       _setting.get(SettingBoxKey.desktopVolume, defaultValue: 1.0);
 
-  static SkipType get pgcSkipType =>
-      SkipType.values[_setting.get(SettingBoxKey.pgcSkipType) ??
-          SkipType.skipOnce.index];
+  static SkipType get pgcSkipType => SkipType.disable;
 
   static PlayRepeat get audioPlayMode =>
       PlayRepeat.values[_setting.get(SettingBoxKey.audioPlayMode) ??
@@ -987,8 +971,7 @@ abstract final class Pref {
   static bool get enablePlayAll =>
       _setting.get(SettingBoxKey.enablePlayAll, defaultValue: true);
 
-  static bool get enableTapDm =>
-      _setting.get(SettingBoxKey.enableTapDm, defaultValue: true);
+  static bool get enableTapDm => false;
 
   static bool get showTrayIcon =>
       _setting.get(SettingBoxKey.showTrayIcon, defaultValue: true);

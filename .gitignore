@@ -150,3 +150,10 @@ pili_release.json
 dist
 
 test*
+# Project-local Android toolchain and dependency caches
+.toolchain/
+
+!test/
+!test/pure_search_test.dart
+
+!test/pure_auth_test.dart

@@ -36,20 +36,11 @@ class Request {
   factory Request() => _instance;
 
   /// 设置cookie
-  static void setCookie() {
+  static Future<void> setCookie() async {
     accountManager = AccountManager();
     dio.interceptors.add(accountManager);
-    Accounts.refresh();
-    LoginUtils.setWebCookie();
-
-    if (Accounts.main.isLogin) {
-      final coin = Pref.userInfoCache?.money;
-      if (coin == null) {
-        setCoin();
-      } else {
-        GlobalData().coins = coin;
-      }
-    }
+    await Accounts.refresh();
+    await LoginUtils.setWebCookie();
   }
 
   static Future<void> setCoin() async {
@@ -331,9 +322,7 @@ class Request {
     } on DioException catch (e) {
       // if (kDebugMode) debugPrint('downloadFile error: $e');
       return Response(
-        data: {
-          'message': await AccountManager.dioError(e),
-        },
+        data: {'message': await AccountManager.dioError(e)},
         statusCode: e.response?.statusCode ?? -1,
         requestOptions: e.requestOptions,
       );

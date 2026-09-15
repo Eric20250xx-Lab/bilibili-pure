@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/models/common/account_type.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
@@ -7,6 +9,7 @@ import 'package:hive_ce/hive.dart';
 
 abstract final class Accounts {
   static late final Box<LoginAccount> account;
+  static int revision = 0;
   static final List<Account> accountMode = List.filled(
     AccountType.values.length,
     AnonymousAccount(),
@@ -39,20 +42,42 @@ abstract final class Accounts {
         accountMode[t.index] = a;
       }
     }
-    return Future.wait(
-      (accountMode.toSet()..removeWhere((i) => i.activated)).map(
-        Request.buvidActive,
-      ),
-    );
+    for (final a in accountMode.toSet()) {
+      unawaited(Request.buvidActive(a));
+    }
+    return Future.value();
   }
 
   static Future<void> clear() async {
-    await account.clear();
+    revision++;
+    for (final a in [
+      ...account.values,
+      ...accountMode.whereType<LoginAccount>(),
+    ]) {
+      a.retire();
+    }
+    final cleared = account.clear();
     for (int i = 0; i < AccountType.values.length; i++) {
       accountMode[i] = AnonymousAccount();
     }
-    await AnonymousAccount().delete();
+    await Future.wait([cleared, AnonymousAccount().delete()]);
     Request.buvidActive(AnonymousAccount());
+  }
+
+  static Future<void> useSingle(LoginAccount next) async {
+    final current = ++revision;
+    final previous = account.values.where((a) => a.mid != next.mid).toList();
+    for (final old in account.values) {
+      if (!identical(old, next)) old.retire();
+    }
+    next.type.addAll(AccountType.values);
+    accountMode.fillRange(0, accountMode.length, next);
+    final writes = [?next.onChange(), for (final a in previous) a.delete()];
+    MineController.anonymity.value = false;
+    await Future.wait(writes);
+    if (revision != current) return;
+    unawaited(Request.buvidActive(next));
+    await LoginUtils.onLoginMain();
   }
 
   static Future<void> deleteAll(Set<Account> accounts) async {

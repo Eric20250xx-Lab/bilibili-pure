@@ -1,0 +1,13 @@
+def useReachableCentral = { repository ->
+    if (repository instanceof org.gradle.api.artifacts.repositories.MavenArtifactRepository && repository.url.host == 'repo.maven.apache.org') {
+        repository.url = URI.create('https://repo1.maven.org/maven2')
+    }
+}
+allprojects {
+    repositories.all(useReachableCentral)
+    buildscript.repositories.all(useReachableCentral)
+}
+settingsEvaluated { settings ->
+    settings.pluginManagement.repositories.all(useReachableCentral)
+    settings.dependencyResolutionManagement.repositories.all(useReachableCentral)
+}

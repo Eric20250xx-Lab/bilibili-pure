@@ -12,7 +12,6 @@ import 'package:PiliPlus/models/common/theme/theme_color_type.dart';
 import 'package:PiliPlus/plugin/pl_player/utils/fullscreen.dart';
 import 'package:PiliPlus/router/app_pages.dart';
 import 'package:PiliPlus/services/account_service.dart';
-import 'package:PiliPlus/services/download/download_service.dart';
 import 'package:PiliPlus/services/logger.dart';
 import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/utils/cache_manager.dart';
@@ -25,7 +24,6 @@ import 'package:PiliPlus/utils/json_file_handler.dart';
 import 'package:PiliPlus/utils/max_screen_size.dart';
 import 'package:PiliPlus/utils/path_utils.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
-import 'package:PiliPlus/utils/request_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
@@ -91,6 +89,12 @@ Future<void> _initAppPath() async {
 
 void main() async {
   ScaledWidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(
+      ['PiliPlus / 简看'],
+      await rootBundle.loadString('assets/licenses/gpl-3.0.txt'),
+    );
+  });
   MediaKit.ensureInitialized();
   await _initAppPath();
   try {
@@ -107,9 +111,7 @@ void main() async {
     CacheManager.ensureInitialized(),
     ?FontUtils.init(),
   ]);
-  Get
-    ..lazyPut(AccountService.new)
-    ..lazyPut(DownloadService.new);
+  Get.lazyPut(AccountService.new);
   HttpOverrides.global = _CustomHttpOverrides();
 
   if (PlatformUtils.isMobile) {
@@ -131,8 +133,7 @@ void main() async {
   }
 
   Request();
-  Request.setCookie();
-  RequestUtils.syncHistoryStatus();
+  await Request.setCookie();
 
   SmartDialog.config.toast = SmartConfigToast(displayType: .onlyRefresh);
 
@@ -291,10 +292,7 @@ class MyApp extends StatelessWidget {
         ),
         builder: _builder,
       ),
-      navigatorObservers: [
-        routeObserver,
-        FlutterSmartDialog.observer,
-      ],
+      navigatorObservers: [routeObserver, FlutterSmartDialog.observer],
       scrollBehavior: PlatformUtils.isDesktop
           ? const CustomScrollBehavior()
           : null,
@@ -328,10 +326,7 @@ class MyApp extends StatelessWidget {
       );
     }
     if (PlatformUtils.isDesktop) {
-      return BackDetector(
-        onBack: _onBack,
-        child: child,
-      );
+      return BackDetector(onBack: _onBack, child: child);
     }
     return child;
   }

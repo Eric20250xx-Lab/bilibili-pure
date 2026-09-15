@@ -86,7 +86,6 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
   // 获取视频简介&分p
   @override
   Future<void> queryVideoIntro() async {
-    queryVideoTags();
     final res = await VideoHttp.videoIntro(bvid: bvid);
     if (res case Success(:final response)) {
       if (response.redirectUrl != null &&
@@ -130,15 +129,9 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
       if (pages != null && pages.isNotEmpty && cid.value == 0) {
         cid.value = pages.first.cid!;
       }
-      queryUserStat(response.staff);
     } else {
       res.toast();
       status.value = false;
-    }
-
-    if (isLogin) {
-      queryAllStatus();
-      queryFollowStatus();
     }
   }
 
@@ -294,10 +287,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
         children: [
           ListTile(
             dense: true,
-            title: const Text(
-              '复制链接',
-              style: TextStyle(fontSize: 14),
-            ),
+            title: const Text('复制链接', style: TextStyle(fontSize: 14)),
             onTap: () {
               Get.back();
               Utils.copyText(videoUrl);
@@ -315,10 +305,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
           ),
           ListTile(
             dense: true,
-            title: const Text(
-              '其它app打开',
-              style: TextStyle(fontSize: 14),
-            ),
+            title: const Text('其它app打开', style: TextStyle(fontSize: 14)),
             onTap: () {
               Get.back();
               PiliAndroidHelper.openUrl(videoUrl);
@@ -327,10 +314,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
           if (PlatformUtils.isMobile)
             ListTile(
               dense: true,
-              title: const Text(
-                '分享视频',
-                style: TextStyle(fontSize: 14),
-              ),
+              title: const Text('分享视频', style: TextStyle(fontSize: 14)),
               onTap: () {
                 Get.back();
                 ShareUtils.shareText(
@@ -343,10 +327,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
           if (isLogin)
             ListTile(
               dense: true,
-              title: const Text(
-                '分享至动态',
-                style: TextStyle(fontSize: 14),
-              ),
+              title: const Text('分享至动态', style: TextStyle(fontSize: 14)),
               onTap: () {
                 Get.back();
                 showModalBottomSheet(
@@ -366,10 +347,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
           if (isLogin)
             ListTile(
               dense: true,
-              title: const Text(
-                '分享至消息',
-                style: TextStyle(fontSize: 14),
-              ),
+              title: const Text('分享至消息', style: TextStyle(fontSize: 14)),
               onTap: () {
                 Get.back();
                 try {
@@ -424,11 +402,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
     }
     int attr = followStatus.value.attribute ?? 0;
     if (attr == 128) {
-      final res = await VideoHttp.relationMod(
-        mid: mid,
-        act: 6,
-        reSrc: 11,
-      );
+      final res = await VideoHttp.relationMod(mid: mid, act: 6, reSrc: 11);
       if (res.isSuccess) {
         followStatus
           ..value.attribute = 0
@@ -714,35 +688,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
     }
   }
 
-  bool playRelated() {
-    RelatedController relatedCtr;
-    if (Get.isRegistered<RelatedController>(tag: heroTag)) {
-      relatedCtr = Get.find<RelatedController>(tag: heroTag);
-    } else {
-      relatedCtr = Get.put(RelatedController(autoQuery: false), tag: heroTag)
-        ..queryData().whenComplete(playRelated);
-      return false;
-    }
-
-    if (relatedCtr.loadingState.value case Success(:final response)) {
-      final firstItem = response?.firstOrNull;
-      if (firstItem == null) {
-        SmartDialog.showToast('暂无相关视频，停止连播');
-        return false;
-      }
-      onChangeEpisode(
-        BaseEpisodeItem(
-          aid: firstItem.aid,
-          bvid: firstItem.bvid,
-          cid: firstItem.cid,
-          cover: firstItem.cover,
-        ),
-      );
-      return true;
-    }
-
-    return false;
-  }
+  bool playRelated() => false;
 
   // ai总结
   static Future<AiConclusionResult?> getAiConclusion(
@@ -755,11 +701,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
       return null;
     }
     SmartDialog.showLoading(msg: '正在获取AI总结');
-    final res = await VideoHttp.aiConclusion(
-      bvid: bvid,
-      cid: cid,
-      upMid: mid,
-    );
+    final res = await VideoHttp.aiConclusion(bvid: bvid, cid: cid, upMid: mid);
     SmartDialog.dismiss();
     if (res case Success(:final response)) {
       return response.modelResult;
