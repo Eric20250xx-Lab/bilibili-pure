@@ -63,7 +63,7 @@ abstract class CommonIntroController extends GetxController
   void actionShareVideo(BuildContext context);
 
   // 同时观看
-  final bool isShowOnlineTotal = Pref.enableOnlineTotal;
+  final bool isShowOnlineTotal = false;
   late final RxString total = '1'.obs;
   Timer? timer;
 
@@ -86,14 +86,7 @@ abstract class CommonIntroController extends GetxController
     startTimer();
   }
 
-  void startTimer() {
-    if (isShowOnlineTotal) {
-      queryOnlineTotal();
-      timer ??= Timer.periodic(const Duration(seconds: 10), (Timer timer) {
-        queryOnlineTotal();
-      });
-    }
-  }
+  void startTimer() {}
 
   void cancelTimer() {
     timer?.cancel();

@@ -64,16 +64,6 @@ class PgcIntroController extends CommonIntroController {
     pgcItem = args['pgcItem'];
 
     super.onInit();
-
-    if (isPgc) {
-      if (isLogin) {
-        queryIsFollowed();
-        if (epId != null) {
-          queryPgcLikeCoinFav();
-        }
-      }
-      queryVideoTags();
-    }
   }
 
   // 获取点赞/投币/收藏状态
@@ -198,10 +188,7 @@ class PgcIntroController extends CommonIntroController {
             ),
           if (isLogin)
             DialogOption(
-              child: const Text(
-                '分享至消息',
-                style: TextStyle(fontSize: 14),
-              ),
+              child: const Text('分享至消息', style: TextStyle(fontSize: 14)),
               onPressed: () {
                 Get.back();
                 try {
@@ -281,10 +268,6 @@ class PgcIntroController extends CommonIntroController {
             replyCtr.onReload();
           }
         } catch (_) {}
-      }
-
-      if (isPgc && isLogin) {
-        queryPgcLikeCoinFav();
       }
 
       hasLater.value = videoDetailCtr.sourceType == SourceType.watchLater;

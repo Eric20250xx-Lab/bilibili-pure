@@ -11,6 +11,9 @@ import 'package:PiliPlus/utils/extension/string_ext.dart';
 import 'package:PiliPlus/utils/parse_int.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 
+bool isSearchAdvertisement(Map row) =>
+    const [true, 1, '1'].contains(row['is_ad']);
+
 abstract class SearchNumData<T> {
   SearchNumData({
     this.numResults,
@@ -18,6 +21,7 @@ abstract class SearchNumData<T> {
   });
 
   int? numResults;
+  int? numPages;
   List<T>? list;
 }
 
@@ -29,8 +33,14 @@ class SearchVideoData extends SearchNumData<SearchVideoItemModel> {
 
   SearchVideoData.fromJson(Map<String, dynamic> json) {
     numResults = (json['numResults'] as num?)?.toInt();
+    numPages = (json['numPages'] as num?)?.toInt();
     list = (json['result'] as List?)
-        ?.map<SearchVideoItemModel>((e) => SearchVideoItemModel.fromJson(e))
+        ?.where(
+          (e) =>
+              !isSearchAdvertisement(e) &&
+              (e['type'] == null || e['type'] == 'video'),
+        )
+        .map<SearchVideoItemModel>((e) => SearchVideoItemModel.fromJson(e))
         .toList();
   }
 
@@ -401,8 +411,10 @@ class SearchPgcData extends SearchNumData<SearchPgcItemModel> {
 
   SearchPgcData.fromJson(Map<String, dynamic> json) {
     numResults = (json['numResults'] as num?)?.toInt();
+    numPages = (json['numPages'] as num?)?.toInt();
     list = (json['result'] as List?)
-        ?.map<SearchPgcItemModel>((e) => SearchPgcItemModel.fromJson(e))
+        ?.where((e) => !isSearchAdvertisement(e))
+        .map<SearchPgcItemModel>((e) => SearchPgcItemModel.fromJson(e))
         .toList();
   }
 }

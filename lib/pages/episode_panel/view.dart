@@ -4,15 +4,11 @@ import 'package:PiliPlus/common/assets.dart';
 import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
-import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/keep_alive_wrapper.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart'
     show tabBarScrollPhysics;
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
-import 'package:PiliPlus/http/fav.dart';
-import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/common/episode_panel_type.dart';
 import 'package:PiliPlus/models/common/stat_type.dart';
 import 'package:PiliPlus/models_new/pgc/pgc_info_model/episode.dart' as pgc;
@@ -28,7 +24,6 @@ import 'package:PiliPlus/utils/duration_utils.dart';
 import 'package:PiliPlus/utils/extension/num_ext.dart';
 import 'package:PiliPlus/utils/extension/scroll_controller_ext.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
-import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
@@ -99,16 +94,13 @@ class _EpisodePanelState extends State<EpisodePanel>
 
   // item
   late int _currentItemIndex;
-  int get _findCurrentItemIndex => max(
-    0,
-    _getCurrEpisodes.indexWhere((item) => item.cid == widget.cid),
-  );
+  int get _findCurrentItemIndex =>
+      max(0, _getCurrEpisodes.indexWhere((item) => item.cid == widget.cid));
 
   late final List<bool> _isReversed;
   late final List<ScrollController> _itemScrollController;
 
   // fav
-  Rx<LoadingState<bool>>? _favState;
 
   void listener() {
     _currentTabIndex.value = _tabController.index;
@@ -170,27 +162,6 @@ class _EpisodePanelState extends State<EpisodePanel>
       growable: false,
     );
     _isReversed = List.filled(widget.list.length, false);
-
-    if (widget.type == EpisodeType.season && Accounts.main.isLogin) {
-      final favState =
-          widget.ugcIntroController?.seasonFavState[widget.seasonId];
-      if (favState != null) {
-        _favState = Success(favState).obs;
-      } else {
-        _favState = LoadingState<bool>.loading().obs;
-        VideoHttp.videoRelation(bvid: widget.bvid).then(
-          (result) {
-            if (!mounted) return;
-            if (result case Success(:final response)) {
-              final seasonFav = response.seasonFav ?? false;
-              _favState!.value = Success(seasonFav);
-              widget.ugcIntroController?.seasonFavState[widget.seasonId] =
-                  seasonFav;
-            }
-          },
-        );
-      }
-    }
   }
 
   @override
@@ -198,7 +169,6 @@ class _EpisodePanelState extends State<EpisodePanel>
     _tabController
       ..removeListener(listener)
       ..dispose();
-    _favState?.close();
     for (final e in _itemScrollController) {
       e.dispose();
     }
@@ -240,11 +210,7 @@ class _EpisodePanelState extends State<EpisodePanel>
         horizontalDragGestureRecognizer: horizontalDragGestureRecognizer,
         children: List.generate(
           widget.list.length,
-          (index) => _buildBody(
-            theme,
-            index,
-            widget.list[index].episodes,
-          ),
+          (index) => _buildBody(theme, index, widget.list[index].episodes),
         ),
       );
     }
@@ -368,7 +334,6 @@ class _EpisodePanelState extends State<EpisodePanel>
   }) {
     late String title;
     String? cover;
-    String? bvid;
     num? duration;
     int? pubdate;
     int? view;
@@ -386,7 +351,6 @@ class _EpisodePanelState extends State<EpisodePanel>
         break;
       case ugc.EpisodeItem item:
         title = item.title!;
-        bvid = item.bvid;
         if (item.arc case final arc?) {
           cover = arc.pic;
           duration = arc.duration;
@@ -402,7 +366,6 @@ class _EpisodePanelState extends State<EpisodePanel>
         }
         break;
       case pgc.EpisodeItem item:
-        bvid = item.bvid;
         title = item.showTitle ?? item.title!;
         cover = item.cover;
         if (item.from == 'pugv') {
@@ -416,12 +379,6 @@ class _EpisodePanelState extends State<EpisodePanel>
         break;
     }
     late final Color primary = theme.colorScheme.primary;
-
-    void onLongPress() {
-      if (cover?.isNotEmpty == true) {
-        imageSaveDialog(title: title, cover: cover, bvid: bvid);
-      }
-    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
@@ -458,8 +415,8 @@ class _EpisodePanelState extends State<EpisodePanel>
                 }
               });
             },
-            onLongPress: onLongPress,
-            onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
+            onLongPress: null,
+            onSecondaryTap: null,
             child: Padding(
               padding: const .symmetric(
                 horizontal: Style.safeSpace,
@@ -573,10 +530,7 @@ class _EpisodePanelState extends State<EpisodePanel>
                           Row(
                             spacing: 8,
                             children: [
-                              StatWidget(
-                                value: view,
-                                type: StatType.play,
-                              ),
+                              StatWidget(value: view, type: StatType.play),
                               if (danmaku != null)
                                 StatWidget(
                                   value: danmaku,
@@ -595,33 +549,6 @@ class _EpisodePanelState extends State<EpisodePanel>
         ),
       ),
     );
-  }
-
-  Widget _buildFavBtn(LoadingState<bool> loadingState) {
-    return switch (loadingState) {
-      Success(:final response) => iconButton(
-        iconSize: 22,
-        tooltip: response ? '取消订阅' : '订阅',
-        icon: response
-            ? const Icon(Icons.notifications_off_outlined)
-            : const Icon(Icons.notifications_active_outlined),
-        onPressed: () async {
-          final res = await FavHttp.seasonFav(
-            isFav: response,
-            seasonId: widget.seasonId,
-          );
-          if (res.isSuccess) {
-            SmartDialog.showToast('${response ? '取消' : ''}订阅成功');
-            _favState!.value = Success(!response);
-            widget.ugcIntroController?.seasonFavState[widget.seasonId] =
-                !response;
-          } else {
-            res.toast();
-          }
-        },
-      ),
-      _ => const SizedBox.shrink(),
-    };
   }
 
   Widget get _buildReverseBtn => iconButton(
@@ -648,19 +575,13 @@ class _EpisodePanelState extends State<EpisodePanel>
     padding: EdgeInsets.symmetric(horizontal: showTitle ? 14 : 6),
     decoration: BoxDecoration(
       border: Border(
-        bottom: BorderSide(
-          color: theme.dividerColor.withValues(alpha: 0.1),
-        ),
+        bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.1)),
       ),
     ),
     child: Row(
       children: [
         if (showTitle)
-          Text(
-            widget.type.title,
-            style: theme.textTheme.titleMedium,
-          ),
-        if (_favState != null) Obx(() => _buildFavBtn(_favState!.value)),
+          Text(widget.type.title, style: theme.textTheme.titleMedium),
         iconButton(
           iconSize: 22,
           tooltip: '跳至顶部',
@@ -690,29 +611,25 @@ class _EpisodePanelState extends State<EpisodePanel>
           },
         ),
         if (widget.isSupportReverse == true)
-          Obx(
-            () {
-              return _currentTabIndex.value == widget.initialTabIndex
-                  ? _buildReverseBtn
-                  : const SizedBox.shrink();
-            },
-          ),
+          Obx(() {
+            return _currentTabIndex.value == widget.initialTabIndex
+                ? _buildReverseBtn
+                : const SizedBox.shrink();
+          }),
         const Spacer(),
-        Obx(
-          () {
-            final currentTabIndex = _currentTabIndex.value;
-            return iconButton(
-              iconSize: 22,
-              tooltip: _isReversed[currentTabIndex] ? '顺序' : '倒序',
-              icon: !_isReversed[currentTabIndex]
-                  ? const Icon(MdiIcons.sortNumericAscending)
-                  : const Icon(MdiIcons.sortNumericDescending),
-              onPressed: () => setState(() {
-                _isReversed[currentTabIndex] = !_isReversed[currentTabIndex];
-              }),
-            );
-          },
-        ),
+        Obx(() {
+          final currentTabIndex = _currentTabIndex.value;
+          return iconButton(
+            iconSize: 22,
+            tooltip: _isReversed[currentTabIndex] ? '顺序' : '倒序',
+            icon: !_isReversed[currentTabIndex]
+                ? const Icon(MdiIcons.sortNumericAscending)
+                : const Icon(MdiIcons.sortNumericDescending),
+            onPressed: () => setState(() {
+              _isReversed[currentTabIndex] = !_isReversed[currentTabIndex];
+            }),
+          );
+        }),
         if (widget.onClose != null)
           iconButton(
             iconSize: 22,

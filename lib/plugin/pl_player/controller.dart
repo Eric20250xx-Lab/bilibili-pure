@@ -298,7 +298,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   }
 
   // 弹幕相关配置
-  late final enableTapDm = PlatformUtils.isMobile && Pref.enableTapDm;
+  final enableTapDm = false;
   late RuleFilter filters = Pref.danmakuFilterRule;
   // 关联弹幕控制器
   DanmakuController<DanmakuExtra>? danmakuController;
@@ -327,7 +327,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   late int subtitleFontWeight = Pref.subtitleFontWeight;
 
   // settings
-  late final showFSActionItem = Pref.showFSActionItem;
+  final showFSActionItem = false;
   late final enableShrinkVideoSize = Pref.enableShrinkVideoSize;
   late final darkVideoPage = Pref.darkVideoPage;
   late final enableSlideVolumeBrightness = Pref.enableSlideVolumeBrightness;
@@ -339,16 +339,16 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
   late final horizontalSeasonPanel = Pref.horizontalSeasonPanel;
   late final preInitPlayer = Pref.preInitPlayer;
-  late final showRelatedVideo = Pref.showRelatedVideo;
-  late final showVideoReply = Pref.showVideoReply;
-  late final showBangumiReply = Pref.showBangumiReply;
+  final showRelatedVideo = false;
+  final showVideoReply = false;
+  final showBangumiReply = false;
   late final reverseFromFirst = Pref.reverseFromFirst;
   late final horizontalPreview = Pref.horizontalPreview;
-  late final showDmChart = Pref.showDmChart;
-  late final showViewPoints = Pref.showViewPoints;
-  late final showFsScreenshotBtn = Pref.showFsScreenshotBtn;
+  final showDmChart = false;
+  final showViewPoints = false;
+  final showFsScreenshotBtn = false;
   late final showFsLockBtn = Pref.showFsLockBtn;
-  late final keyboardControl = Pref.keyboardControl;
+  final keyboardControl = false;
   late final uiScale = Pref.uiScale;
 
   late final bool autoEnterFullScreen = Pref.autoEnterFullScreen;
@@ -376,7 +376,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   num get sliderScale => isRelative ? durationInMilliseconds * offset : offset;
 
   // 播放顺序相关
-  late PlayRepeat playRepeat = Pref.playRepeat;
+  PlayRepeat playRepeat = PlayRepeat.pause;
 
   TextStyle get subTitleStyle => TextStyle(
     height: 1.5,
@@ -818,11 +818,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
     assert(!isLive || seekTo == null);
     await player.open(
-      Media(
-        video,
-        start: seekTo,
-        extras: extras.isEmpty ? null : extras,
-      ),
+      Media(video, start: seekTo, extras: extras.isEmpty ? null : extras),
       play: false,
     );
   }

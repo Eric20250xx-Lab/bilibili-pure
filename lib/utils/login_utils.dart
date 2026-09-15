@@ -7,7 +7,6 @@ import 'package:PiliPlus/main.dart' show webViewEnvironment;
 import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
-import 'package:PiliPlus/utils/request_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
@@ -47,8 +46,10 @@ abstract final class LoginUtils {
     final res = await UserHttp.userInfo();
     if (res case Success(:final response)) {
       setWebCookie(account);
-      RequestUtils.syncHistoryStatus();
       if (response.isLogin == true) {
+        if (response != Pref.userInfoCache) {
+          await GStorage.userInfo.put('userInfoCache', response);
+        }
         final accountService = Get.find<AccountService>()
           ..face.value = response.face!;
 
@@ -56,11 +57,6 @@ abstract final class LoginUtils {
           accountService.isLogin.refresh();
         } else {
           accountService.isLogin.value = true;
-        }
-
-        SmartDialog.showToast('main登录成功');
-        if (response != Pref.userInfoCache) {
-          await GStorage.userInfo.put('userInfoCache', response);
         }
       }
     } else {
@@ -87,17 +83,15 @@ abstract final class LoginUtils {
       if (Platform.isLinux)
         LinuxCookieManager.deleteAllCookies()
       else
-        web.CookieManager.instance(
-          webViewEnvironment: webViewEnvironment,
-        ).deleteAllCookies(),
+        web.CookieManager.instance(webViewEnvironment: webViewEnvironment)
+            .deleteAllCookies(),
       GStorage.userInfo.delete('userInfoCache'),
     ]);
   }
 
   static String generateBuvid() {
-    final md5Str = Digest(
-      List.generate(16, (_) => Utils.random.nextInt(256)),
-    ).toString();
+    final md5Str = Digest(List.generate(16, (_) => Utils.random.nextInt(256)))
+        .toString();
     return 'XY${md5Str[2]}${md5Str[12]}${md5Str[22]}$md5Str';
   }
 

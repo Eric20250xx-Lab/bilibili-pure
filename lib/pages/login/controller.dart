@@ -51,7 +51,7 @@ class LoginPageController extends GetxController
   @override
   void onInit() {
     super.onInit();
-    tabController = TabController(length: 4, vsync: this)
+    tabController = TabController(length: 2, vsync: this)
       ..addListener(_handleTabChange);
   }
 
@@ -71,45 +71,57 @@ class LoginPageController extends GetxController
   }
 
   Future<void> refreshQRCode() async {
-    final res = await LoginHttp.getHDcode();
-    if (res case Success(:final response)) {
-      qrCodeTimer?.cancel();
+    qrCodeTimer?.cancel();
+    codeInfo.value = LoadingState.loading();
+    statusQRCode.value = '';
+    qrCodeLeftTime.value = 180;
+    try {
+      final res = await LoginHttp.getHDcode();
+      if (isClosed) return;
       codeInfo.value = res;
-      qrCodeTimer = Timer.periodic(const Duration(milliseconds: 1000), (t) {
-        final left = 180 - t.tick;
-        if (left <= 0) {
-          t.cancel();
-          statusQRCode.value = '二维码已过期，请刷新';
-          qrCodeLeftTime.value = 0;
-          return;
-        }
-        qrCodeLeftTime.value = left;
-        if (_isReq || tabController.index != 2) return;
-
-        _isReq = true;
-        LoginHttp.codePoll(response.authCode).then((value) async {
-          _isReq = false;
-          if (value['status']) {
-            t.cancel();
-            statusQRCode.value = '扫码成功';
-            await setAccount(
-              value['data'],
-              value['data']['cookie_info']['cookies'],
-            );
-            Get.back();
-          } else if (value['code'] == 86038) {
-            t.cancel();
-            qrCodeLeftTime.value = 0;
-          } else {
-            statusQRCode.value = value['msg'];
+      if (res case Success(:final response)) {
+        qrCodeTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+          final left = 180 - timer.tick;
+          qrCodeLeftTime.value = left < 0 ? 0 : left;
+          if (left <= 0) {
+            timer.cancel();
+            statusQRCode.value = '二维码已过期，请刷新';
+            return;
+          }
+          if (_isReq || tabController.index != 1) return;
+          _isReq = true;
+          try {
+            final value = await LoginHttp.codePoll(response.authCode);
+            if (isClosed || timer != qrCodeTimer || !timer.isActive) return;
+            if (value['status'] == true) {
+              timer.cancel();
+              statusQRCode.value = '扫码成功';
+              await setAccount(
+                value['data'],
+                value['data']['cookie_info']['cookies'],
+              );
+              if (!isClosed) Get.back();
+            } else if (value['code'] == 86038) {
+              timer.cancel();
+              qrCodeLeftTime.value = 0;
+              statusQRCode.value = '二维码已过期，请刷新';
+            } else {
+              statusQRCode.value = value['msg'] ?? '等待扫码';
+            }
+          } catch (_) {
+            if (!isClosed) statusQRCode.value = '网络异常，请稍后刷新二维码';
+          } finally {
+            _isReq = false;
           }
         });
-      });
+      }
+    } catch (_) {
+      if (!isClosed) codeInfo.value = const Error('二维码加载失败，请检查网络后重试');
     }
   }
 
   void _handleTabChange() {
-    if (tabController.index == 2) {
+    if (tabController.index == 1) {
       if (qrCodeTimer == null || !qrCodeTimer!.isActive) {
         refreshQRCode();
       }
@@ -117,11 +129,7 @@ class LoginPageController extends GetxController
   }
 
   // 申请极验验证码
-  void getCaptcha(
-    String geeGt,
-    String geeChallenge,
-    VoidCallback onSuccess,
-  ) {
+  void getCaptcha(String geeGt, String geeChallenge, VoidCallback onSuccess) {
     GeetestWebviewDialog.geetest(geeGt, geeChallenge).then((res) {
       if (res != null) {
         captchaData
@@ -161,9 +169,7 @@ class LoginPageController extends GetxController
       final result = await Request().get(
         "/x/member/web/account",
         options: Options(
-          headers: {
-            "cookie": validateCookie(cookieTextController.text),
-          },
+          headers: {"cookie": validateCookie(cookieTextController.text)},
           extra: {'account': AnonymousAccount()},
         ),
       );
@@ -269,10 +275,7 @@ class LoginPageController extends GetxController
               horizontal: 16,
               vertical: 12,
             ),
-            title: const Text(
-              "本次登录需要验证您的手机号",
-              textAlign: TextAlign.center,
-            ),
+            title: const Text("本次登录需要验证您的手机号", textAlign: TextAlign.center),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -324,31 +327,27 @@ class LoginPageController extends GetxController
                     return;
                   }
 
-                  getCaptcha(
-                    geeGt,
-                    geeChallenge,
-                    () async {
-                      final safeCenterSendSmsCodeRes =
-                          await LoginHttp.safeCenterSmsCode(
-                            tmpCode: currentUri.queryParameters['tmp_token']!,
-                            geeChallenge: geeChallenge,
-                            geeSeccode: captchaData.seccode,
-                            geeValidate: captchaData.validate,
-                            recaptchaToken: captchaData.token,
-                            refererUrl: url,
-                          );
-                      if (!safeCenterSendSmsCodeRes['status']) {
-                        SmartDialog.showToast(
-                          "发送短信验证码失败，请尝试其它登录方式\n"
-                          "(${safeCenterSendSmsCodeRes['code']}) ${safeCenterSendSmsCodeRes['msg']}",
+                  getCaptcha(geeGt, geeChallenge, () async {
+                    final safeCenterSendSmsCodeRes =
+                        await LoginHttp.safeCenterSmsCode(
+                          tmpCode: currentUri.queryParameters['tmp_token']!,
+                          geeChallenge: geeChallenge,
+                          geeSeccode: captchaData.seccode,
+                          geeValidate: captchaData.validate,
+                          recaptchaToken: captchaData.token,
+                          refererUrl: url,
                         );
-                        return;
-                      }
-                      SmartDialog.showToast("短信验证码已发送，请查收");
-                      captchaKey =
-                          safeCenterSendSmsCodeRes['data']['captcha_key'];
-                    },
-                  );
+                    if (!safeCenterSendSmsCodeRes['status']) {
+                      SmartDialog.showToast(
+                        "发送短信验证码失败，请尝试其它登录方式\n"
+                        "(${safeCenterSendSmsCodeRes['code']}) ${safeCenterSendSmsCodeRes['msg']}",
+                      );
+                      return;
+                    }
+                    SmartDialog.showToast("短信验证码已发送，请查收");
+                    captchaKey =
+                        safeCenterSendSmsCodeRes['data']['captcha_key'];
+                  });
                 },
               ),
               TextButton(
@@ -630,12 +629,16 @@ class LoginPageController extends GetxController
         Accounts.accountMode[i] = account;
       }
     }
-    if (Accounts.main.isLogin) {
-      SmartDialog.showToast('登录成功');
-    } else {
-      SmartDialog.showToast('登录成功, 请先设置账号模式');
-      await switchAccountDialog(Get.context!);
+    for (final type in AccountType.values) {
+      await Accounts.set(type, account);
     }
+    final previousAccounts = Accounts.account.values
+        .where((a) => a.mid != account.mid)
+        .toList();
+    for (final previous in previousAccounts) {
+      await previous.delete();
+    }
+    SmartDialog.showToast('登录成功');
   }
 
   static Future<void>? switchAccountDialog(BuildContext context) {
@@ -647,9 +650,7 @@ class LoginPageController extends GetxController
     final selectAccount = List.of(Accounts.accountMode);
     final options = {
       AnonymousAccount(): '0',
-      ...Accounts.account.toMap().map(
-        (k, v) => MapEntry(v, k as String),
-      ),
+      ...Accounts.account.toMap().map((k, v) => MapEntry(v, k as String)),
     };
     bool quickSelect = selectAccount.every((e) => e == selectAccount.first);
     return showDialog(
