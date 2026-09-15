@@ -2,6 +2,7 @@ import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/common/search/video_search_type.dart';
 import 'package:PiliPlus/pages/pure/search_api.dart';
+import 'package:PiliPlus/pages/pure/history.dart';
 import 'package:PiliPlus/pages/pure/search_state.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
@@ -98,6 +99,11 @@ class _PureHomePageState extends State<PureHomePage> {
       appBar: AppBar(
         title: const Text('简看'),
         actions: [
+          IconButton(
+            tooltip: '观看历史',
+            onPressed: () => Get.to(() => const PureHistoryPage()),
+            icon: const Icon(Icons.history),
+          ),
           TextButton.icon(
             onPressed: Accounts.main.isLogin ? _settings : _login,
             icon: Icon(
