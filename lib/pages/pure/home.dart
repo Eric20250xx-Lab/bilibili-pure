@@ -3,7 +3,6 @@ import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/common/search/video_search_type.dart';
 import 'package:PiliPlus/pages/pure/search_api.dart';
 import 'package:PiliPlus/pages/pure/search_state.dart';
-import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -52,6 +51,11 @@ class _PureHomePageState extends State<PureHomePage> {
     }
   }
 
+  Future<void> _settings() async {
+    await Get.toNamed('/setting');
+    if (mounted) setState(() {});
+  }
+
   Future<void> _open(PureSearchItem item) async {
     if (_openingVideo) return;
     _openingVideo = true;
@@ -94,22 +98,18 @@ class _PureHomePageState extends State<PureHomePage> {
       appBar: AppBar(
         title: const Text('简看'),
         actions: [
-          Obx(
-            () => TextButton.icon(
-              onPressed: Get.find<AccountService>().isLogin.value
-                  ? () => Get.toNamed('/setting')
-                  : _login,
-              icon: Icon(
-                Accounts.main.isLogin
-                    ? Icons.account_circle_outlined
-                    : Icons.login,
-              ),
-              label: Text(Accounts.main.isLogin ? '账号' : '登录'),
+          TextButton.icon(
+            onPressed: Accounts.main.isLogin ? _settings : _login,
+            icon: Icon(
+              Accounts.main.isLogin
+                  ? Icons.account_circle_outlined
+                  : Icons.login,
             ),
+            label: Text(Accounts.main.isLogin ? '账号' : '登录'),
           ),
           IconButton(
             tooltip: '设置',
-            onPressed: () => Get.toNamed('/setting'),
+            onPressed: _settings,
             icon: const Icon(Icons.settings_outlined),
           ),
           const SizedBox(width: 8),

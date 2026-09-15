@@ -361,7 +361,7 @@ class HeaderControlState extends State<HeaderControl>
               title: const Text('重新加载视频'),
               onTap: () {
                 Get.back();
-                videoDetailCtr.queryVideoUrl();
+                videoDetailCtr.queryVideoUrl(fromReset: true);
               },
             ),
           ],
