@@ -60,12 +60,13 @@ class _PureSettingsPageState extends State<PureSettingsPage> {
     final account = Accounts.main;
     setState(() => _busy = true);
     await Future.wait([Accounts.clear(), LoginUtils.onLogoutMain()]);
-    if (mounted)
+    if (mounted) {
       setState(() {
         _info = null;
         _busy = false;
         _error = null;
       });
+    }
     try {
       if (account is LoginAccount) await LoginHttp.logout(account);
     } catch (_) {

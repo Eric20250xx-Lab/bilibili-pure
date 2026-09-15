@@ -113,8 +113,9 @@ class LoginPageController extends GetxController
                 value['data'],
                 value['data']['cookie_info']['cookies'],
               );
-              if (installed && !isClosed && Get.currentRoute == '/loginPage')
+              if (installed && !isClosed && Get.currentRoute == '/loginPage') {
                 Get.back();
+              }
             } else if (value['code'] == 86038) {
               timer.cancel();
               qrCodeLeftTime.value = 0;
@@ -505,8 +506,9 @@ class LoginPageController extends GetxController
         data['token_info'],
         data['cookie_info']['cookies'],
       );
-      if (installed && !isClosed && Get.currentRoute == '/loginPage')
+      if (installed && !isClosed && Get.currentRoute == '/loginPage') {
         Get.back();
+      }
     } else {
       SmartDialog.showToast(res['msg']);
     }
@@ -646,8 +648,9 @@ class LoginPageController extends GetxController
       tokenInfo['refresh_token'],
     );
     await Accounts.useSingle(account);
-    if (isClosed || attempt != _attempt || !identical(account, Accounts.main))
+    if (isClosed || attempt != _attempt || !identical(account, Accounts.main)) {
       return false;
+    }
     SmartDialog.showToast('登录成功');
     return true;
   }

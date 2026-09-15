@@ -50,6 +50,12 @@ abstract final class Accounts {
 
   static Future<void> clear() async {
     revision++;
+    for (final a in [
+      ...account.values,
+      ...accountMode.whereType<LoginAccount>(),
+    ]) {
+      a.retire();
+    }
     final cleared = account.clear();
     for (int i = 0; i < AccountType.values.length; i++) {
       accountMode[i] = AnonymousAccount();
@@ -61,6 +67,9 @@ abstract final class Accounts {
   static Future<void> useSingle(LoginAccount next) async {
     final current = ++revision;
     final previous = account.values.where((a) => a.mid != next.mid).toList();
+    for (final old in account.values) {
+      if (!identical(old, next)) old.retire();
+    }
     next.type.addAll(AccountType.values);
     accountMode.fillRange(0, accountMode.length, next);
     final writes = [?next.onChange(), for (final a in previous) a.delete()];

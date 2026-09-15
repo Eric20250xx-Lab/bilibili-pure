@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/init.dart';
+import 'package:PiliPlus/http/login.dart';
+import 'package:PiliPlus/utils/accounts/account_manager/account_mgr.dart';
 import 'package:PiliPlus/models/common/account_type.dart';
 import 'package:PiliPlus/pages/login/controller.dart';
 import 'package:PiliPlus/utils/accounts.dart';
@@ -26,8 +30,11 @@ void main() {
 
   Future<void> drain() =>
       Future<void>.delayed(const Duration(milliseconds: 30));
-  LoginAccount account(String id) =>
-      LoginAccount(BiliCookieJar.fromJson({'DedeUserID': id}), null, null);
+  LoginAccount account(String id) => LoginAccount(
+    BiliCookieJar.fromJson({'DedeUserID': id, 'bili_jct': 'test-only'}),
+    null,
+    null,
+  );
   setUpAll(() async {
     temp = await Directory.systemTemp.createTemp('jiankan-auth-');
     Hive.init(temp.path);
@@ -39,10 +46,15 @@ void main() {
     await Accounts.init();
     Request();
     Request.dio.interceptors.clear();
-    Request.dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (o, h) async {
-          h.resolve(Response(requestOptions: o, data: await respond(o)));
+    Request.dio.interceptors.add(AccountManager());
+    Request.dio.httpClientAdapter = _Adapter(
+      (o) async => ResponseBody.fromString(
+        jsonEncode(await respond(o)),
+        200,
+        headers: {
+          'content-type': ['application/json'],
+          if (o.path == Api.logout)
+            'set-cookie': ['test_marker=ok; Domain=.bilibili.com; Path=/'],
         },
       ),
     );
@@ -148,4 +160,47 @@ void main() {
     expect(Accounts.accountMode.every((a) => !a.isLogin), true);
     expect(Pref.userInfoCache, null);
   });
+  test('same-user replacement rejects old account writes', () async {
+    final old = account('4');
+    await old.onChange();
+    final replacement = account('4');
+    final login = Accounts.useSingle(replacement);
+    await old.onChange();
+    expect(Accounts.account.get('4'), same(replacement));
+    await Accounts.clear();
+    await login;
+  });
+
+  test(
+    'logout Cookie response cannot restore credentials after restart',
+    () async {
+      final old = account('3')..type.addAll(AccountType.values);
+      await old.onChange();
+      await Accounts.refresh();
+      final response = hold();
+      respond = (_) => response.future;
+      await Accounts.clear();
+      final logout = LoginHttp.logout(old);
+      response.complete({'code': 0});
+      await logout;
+      expect(old.cookieJar.toJson()['test_marker'], 'ok');
+      expect(old.csrf, 'test-only');
+      expect(Accounts.account.isEmpty, true);
+      await Accounts.refresh();
+      expect(Accounts.accountMode.every((a) => !a.isLogin), true);
+    },
+  );
+}
+
+class _Adapter implements HttpClientAdapter {
+  _Adapter(this.respond);
+  final Future<ResponseBody> Function(RequestOptions) respond;
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions o,
+    Stream<Uint8List>? s,
+    Future<void>? cancelFuture,
+  ) => respond(o);
+  @override
+  void close({bool force = false}) {}
 }
