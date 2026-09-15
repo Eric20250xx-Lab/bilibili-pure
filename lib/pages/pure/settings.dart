@@ -29,22 +29,25 @@ class _PureSettingsPageState extends State<PureSettingsPage> {
   }
 
   Future<void> _refresh() async {
+    final account = Accounts.main;
+    bool current() => mounted && identical(account, Accounts.main);
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
       final result = await UserHttp.userInfo();
+      if (!current()) return;
       if (result case Success(:final response) when response.isLogin == true) {
         await GStorage.userInfo.put('userInfoCache', response);
-        if (mounted) setState(() => _info = response);
-      } else if (mounted) {
+        if (current()) setState(() => _info = response);
+      } else if (current()) {
         setState(() => _error = '无法确认账号状态，请重新登录或稍后刷新');
       }
     } catch (_) {
-      if (mounted) setState(() => _error = '网络连接失败，请稍后刷新');
+      if (current()) setState(() => _error = '网络连接失败，请稍后刷新');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (current()) setState(() => _busy = false);
     }
   }
 
@@ -54,22 +57,19 @@ class _PureSettingsPageState extends State<PureSettingsPage> {
   }
 
   Future<void> _logout() async {
+    final account = Accounts.main;
     setState(() => _busy = true);
-    try {
-      if (Accounts.main case final LoginAccount account) {
-        await LoginHttp.logout(account);
-      }
-    } catch (_) {
-      // 本地退出不依赖网络，避免离线时留下账号凭证。
-    }
-    await Accounts.clear();
-    await LoginUtils.onLogoutMain();
-    if (mounted) {
+    await Future.wait([Accounts.clear(), LoginUtils.onLogoutMain()]);
+    if (mounted)
       setState(() {
         _info = null;
         _busy = false;
         _error = null;
       });
+    try {
+      if (account is LoginAccount) await LoginHttp.logout(account);
+    } catch (_) {
+      // 本地退出不依赖网络，避免离线时留下账号凭证。
     }
   }
 

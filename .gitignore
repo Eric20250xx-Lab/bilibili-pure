@@ -155,3 +155,5 @@ test*
 
 !test/
 !test/pure_search_test.dart
+
+!test/pure_auth_test.dart

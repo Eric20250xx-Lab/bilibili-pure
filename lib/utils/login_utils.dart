@@ -44,12 +44,14 @@ abstract final class LoginUtils {
   static Future<void> onLoginMain() async {
     final account = Accounts.main;
     final res = await UserHttp.userInfo();
+    if (!identical(account, Accounts.main)) return;
     if (res case Success(:final response)) {
       setWebCookie(account);
       if (response.isLogin == true) {
         if (response != Pref.userInfoCache) {
           await GStorage.userInfo.put('userInfoCache', response);
         }
+        if (!identical(account, Accounts.main)) return;
         final accountService = Get.find<AccountService>()
           ..face.value = response.face!;
 

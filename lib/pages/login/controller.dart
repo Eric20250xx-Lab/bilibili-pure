@@ -46,7 +46,14 @@ class LoginPageController extends GetxController
   Timer? qrCodeTimer;
   Timer? smsSendCooldownTimer;
 
-  bool _isReq = false;
+  int _attempt = 0;
+  bool Function() _beginAttempt() {
+    final attempt = ++_attempt;
+    final revision = Accounts.revision;
+    qrCodeTimer?.cancel();
+    return () =>
+        !isClosed && attempt == _attempt && revision == Accounts.revision;
+  }
 
   @override
   void onInit() {
@@ -57,6 +64,7 @@ class LoginPageController extends GetxController
 
   @override
   void onClose() {
+    _attempt++;
     tabController
       ..removeListener(_handleTabChange)
       ..dispose();
@@ -71,16 +79,21 @@ class LoginPageController extends GetxController
   }
 
   Future<void> refreshQRCode() async {
-    qrCodeTimer?.cancel();
+    final isCurrent = _beginAttempt();
+    bool polling = false;
     codeInfo.value = LoadingState.loading();
     statusQRCode.value = '';
     qrCodeLeftTime.value = 180;
     try {
       final res = await LoginHttp.getHDcode();
-      if (isClosed) return;
+      if (!isCurrent()) return;
       codeInfo.value = res;
       if (res case Success(:final response)) {
         qrCodeTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+          if (!isCurrent()) {
+            timer.cancel();
+            return;
+          }
           final left = 180 - timer.tick;
           qrCodeLeftTime.value = left < 0 ? 0 : left;
           if (left <= 0) {
@@ -88,19 +101,20 @@ class LoginPageController extends GetxController
             statusQRCode.value = '二维码已过期，请刷新';
             return;
           }
-          if (_isReq || tabController.index != 1) return;
-          _isReq = true;
+          if (polling || tabController.index != 1) return;
+          polling = true;
           try {
             final value = await LoginHttp.codePoll(response.authCode);
-            if (isClosed || timer != qrCodeTimer || !timer.isActive) return;
+            if (!isCurrent() || !timer.isActive) return;
             if (value['status'] == true) {
               timer.cancel();
               statusQRCode.value = '扫码成功';
-              await setAccount(
+              final installed = await setAccount(
                 value['data'],
                 value['data']['cookie_info']['cookies'],
               );
-              if (!isClosed) Get.back();
+              if (installed && !isClosed && Get.currentRoute == '/loginPage')
+                Get.back();
             } else if (value['code'] == 86038) {
               timer.cancel();
               qrCodeLeftTime.value = 0;
@@ -109,14 +123,14 @@ class LoginPageController extends GetxController
               statusQRCode.value = value['msg'] ?? '等待扫码';
             }
           } catch (_) {
-            if (!isClosed) statusQRCode.value = '网络异常，请稍后刷新二维码';
+            if (isCurrent()) statusQRCode.value = '网络异常，请稍后刷新二维码';
           } finally {
-            _isReq = false;
+            polling = false;
           }
         });
       }
     } catch (_) {
-      if (!isClosed) codeInfo.value = const Error('二维码加载失败，请检查网络后重试');
+      if (isCurrent()) codeInfo.value = const Error('二维码加载失败，请检查网络后重试');
     }
   }
 
@@ -469,7 +483,9 @@ class LoginPageController extends GetxController
       SmartDialog.showToast('验证码已过期，请重新获取');
       return;
     }
+    final isCurrent = _beginAttempt();
     final webKeyRes = await LoginHttp.getWebKey();
+    if (!isCurrent()) return;
     if (!webKeyRes['status']) {
       SmartDialog.showToast(webKeyRes['msg']);
       return;
@@ -482,11 +498,15 @@ class LoginPageController extends GetxController
       cid: selectedCountryCodeId.countryId,
       key: key,
     );
+    if (!isCurrent()) return;
     if (res['status']) {
-      SmartDialog.showToast('登录成功');
       final data = res['data'];
-      await setAccount(data['token_info'], data['cookie_info']['cookies']);
-      Get.back();
+      final installed = await setAccount(
+        data['token_info'],
+        data['cookie_info']['cookies'],
+      );
+      if (installed && !isClosed && Get.currentRoute == '/loginPage')
+        Get.back();
     } else {
       SmartDialog.showToast(res['msg']);
     }
@@ -617,28 +637,19 @@ class LoginPageController extends GetxController
         captchaData.token?.isNotEmpty == true;
   }
 
-  Future<void> setAccount(Map tokenInfo, List cookieInfo) async {
+  Future<bool> setAccount(Map tokenInfo, List cookieInfo) async {
+    if (isClosed) return false;
+    final attempt = _attempt;
     final account = LoginAccount(
       BiliCookieJar.fromList(cookieInfo),
       tokenInfo['access_token'],
       tokenInfo['refresh_token'],
     );
-    await Future.wait([?account.onChange(), AnonymousAccount().delete()]);
-    for (int i = 0; i < AccountType.values.length; i++) {
-      if (Accounts.accountMode[i].mid == account.mid) {
-        Accounts.accountMode[i] = account;
-      }
-    }
-    for (final type in AccountType.values) {
-      await Accounts.set(type, account);
-    }
-    final previousAccounts = Accounts.account.values
-        .where((a) => a.mid != account.mid)
-        .toList();
-    for (final previous in previousAccounts) {
-      await previous.delete();
-    }
+    await Accounts.useSingle(account);
+    if (isClosed || attempt != _attempt || !identical(account, Accounts.main))
+      return false;
     SmartDialog.showToast('登录成功');
+    return true;
   }
 
   static Future<void>? switchAccountDialog(BuildContext context) {

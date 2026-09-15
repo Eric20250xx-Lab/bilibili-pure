@@ -185,22 +185,6 @@ mixin HeaderMixin<T extends StatefulWidget> on State<T> {
                         mainAxisAlignment: .spaceBetween,
                         children: [
                           Text('智能云屏蔽 ${DanmakuOptions.danmakuWeight} 级'),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            onPressed: () => Get
-                              ..back()
-                              ..toNamed(
-                                '/danmakuBlock',
-                                arguments: plPlayerController,
-                              ),
-                            child: Text(
-                              "屏蔽管理(${plPlayerController.filters.count})",
-                            ),
-                          ),
                         ],
                       ),
                       Padding(
