@@ -618,8 +618,8 @@ abstract final class PageUtils {
 
         EpisodeItem? episode;
 
-        void viewSection(EpisodeItem episode) {
-          toVideoPage(
+        Future<void> viewSection(EpisodeItem episode) async {
+          await toVideoPage(
             videoType: VideoType.ugc,
             bvid: episode.bvid!,
             cid: episode.cid!,
@@ -654,7 +654,7 @@ abstract final class PageUtils {
                   for (final episode in episodes) {
                     if (episode.epId.toString() == epId) {
                       // view as ugc
-                      viewSection(episode);
+                      await viewSection(episode);
                       return;
                     }
                   }
@@ -669,7 +669,7 @@ abstract final class PageUtils {
             episodes,
             epId: response.userStatus?.progress?.lastEpId,
           );
-          toVideoPage(
+          await toVideoPage(
             videoType: VideoType.pgc,
             bvid: episode.bvid!,
             cid: episode.cid!,
@@ -687,7 +687,7 @@ abstract final class PageUtils {
         } else {
           episode ??= response.section?.firstOrNull?.episodes?.firstOrNull;
           if (episode != null) {
-            viewSection(episode);
+            await viewSection(episode);
             return;
           }
         }

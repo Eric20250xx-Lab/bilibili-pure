@@ -14,9 +14,9 @@ def main() -> None:
         raise SystemExit('Build the APK with bash scripts/pure-build.sh first.')
     output = root / 'dist'
     output.mkdir(exist_ok=True)
-    target = output / 'jiankan-0.1.0-arm64-v8a.apk'
+    target = output / 'jiankan-0.1.1-arm64-v8a.apk'
     shutil.copy2(apk, target)
-    source = output / 'jiankan-0.1.0-source.zip'
+    source = output / 'jiankan-0.1.1-source.zip'
     paths = subprocess.check_output(
         ['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'],
         cwd=root,

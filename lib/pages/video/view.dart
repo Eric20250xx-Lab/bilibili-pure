@@ -40,8 +40,8 @@ import 'package:PiliPlus/pages/video/introduction/ugc/widgets/season.dart';
 import 'package:PiliPlus/pages/video/member/controller.dart';
 import 'package:PiliPlus/pages/video/member/view.dart';
 import 'package:PiliPlus/pages/video/related/view.dart';
-import 'package:PiliPlus/pages/video/reply/controller.dart';
-import 'package:PiliPlus/pages/video/reply/view.dart';
+import 'package:PiliPlus/pages/pure/comments.dart';
+import 'package:PiliPlus/models/common/video/video_type.dart';
 import 'package:PiliPlus/pages/video/view_point/view.dart';
 import 'package:PiliPlus/pages/video/widgets/header_control.dart';
 import 'package:PiliPlus/pages/video/widgets/intro_layout.dart';
@@ -60,7 +60,6 @@ import 'package:PiliPlus/utils/extension/scroll_controller_ext.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
 import 'package:PiliPlus/utils/max_screen_size.dart';
 import 'package:PiliPlus/utils/mobile_observer.dart';
-import 'package:PiliPlus/utils/num_utils.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
@@ -86,7 +85,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   final heroTag = Get.arguments['heroTag'];
 
   late final VideoDetailController videoDetailController;
-  late final VideoReplyController _videoReplyController;
   PlPlayerController? plPlayerController;
 
   // intro ctr
@@ -142,17 +140,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
     if (videoDetailController.removeSafeArea) {
       hideSystemBar();
-    }
-
-    if (videoDetailController.showReply) {
-      _videoReplyController = Get.put(
-        VideoReplyController(
-          aid: videoDetailController.aid,
-          videoType: videoDetailController.videoType,
-          heroTag: heroTag,
-        ),
-        tag: heroTag,
-      );
     }
 
     if (videoDetailController.isFileSource) {
@@ -1239,8 +1226,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                 text == '简介' ||
                 text == '相关视频') {
               videoDetailController.introScrollCtr?.animToTop();
-            } else if (text.startsWith('评论')) {
-              _videoReplyController.animateToTop();
             }
           }
 
@@ -1251,20 +1236,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
           }
         },
         tabs: tabs.map((text) {
-          if (text == '评论') {
-            return Obx(() {
-              final count = _videoReplyController.count.value;
-              return Tab(
-                child: Text(
-                  '评论${count == -1 ? '' : ' ${NumUtils.numFormat(count)}'}',
-                  softWrap: false,
-                  overflow: .visible,
-                ),
-              );
-            });
-          } else {
-            return Tab(child: Text(text, softWrap: false, overflow: .visible));
-          }
+          return Tab(child: Text(text, softWrap: false, overflow: .visible));
         }).toList(),
       );
     }
@@ -1697,10 +1669,14 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     );
   }
 
-  Widget videoReplyPanel({bool isNested = false}) => VideoReplyPanel(
-    key: videoReplyPanelKey,
-    isNested: isNested,
-    heroTag: heroTag,
+  Widget videoReplyPanel({bool isNested = false}) => Obx(
+    () => PureComments(
+      key: ValueKey(videoDetailController.cid.value),
+      oid: videoDetailController.videoType == VideoType.pugv
+          ? videoDetailController.epId!
+          : videoDetailController.aid,
+      type: videoDetailController.videoType.replyType,
+    ),
   );
 
   // ai总结
